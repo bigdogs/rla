@@ -1,15 +1,15 @@
 #![feature(exit_status_error)]
 
-use tracing::warn;
-
 mod cli;
 mod deps;
 mod dir;
 mod jar;
 mod log;
+mod reverse;
+mod runtime;
 
 fn main() {
     if let Err(e) = cli::run() {
-        warn!("rla run error:  {e}");
+        tracing::error!("{e:?}");
     }
 }
