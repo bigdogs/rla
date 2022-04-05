@@ -5,7 +5,7 @@ use argh::FromArgs;
 
 use crate::{
     deps::{APK_SIGNER, BAKSMALI, SMALI},
-    jar, reverse,
+    reverse,
 };
 
 #[derive(FromArgs)]
@@ -45,7 +45,7 @@ struct Smali {}
 struct BakSmali {}
 
 #[derive(FromArgs)]
-/// sign apk use a default debug keystore
+/// sign apk with a default debug keystore
 #[argh(subcommand, name = "sign")]
 struct Sign {
     /// file to sign
@@ -65,25 +65,15 @@ struct Unpack {
 #[derive(FromArgs)]
 /// package revere project to make a new apk
 #[argh(subcommand, name = "pack")]
-struct Pack {}
-
-// Some commands will print their error to stderr,
-// we don't need to print it aigan in non-verbose mode
-macro_rules! ok {
-    ($r:expr) => {
-        match $r {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                tracing::warn!("{e}");
-                Ok(())
-            }
-        }
-    };
+struct Pack {
+    /// directory of project
+    #[argh(option, short = 'd')]
+    dir: Option<String>,
 }
 
-// argh doesn't support forward all arguments to another command,
-// so we handle it first manually.
-// note that, for these commands, debugger logger can't be enabled
+// `argh` doesn't support forward all arguments to another command,
+// so we handle it manually first.
+// Tracing will not enabled for these commands
 fn run_forward_command() -> bool {
     let subcmd = match std::env::args().nth(1) {
         None => return false,
@@ -91,9 +81,9 @@ fn run_forward_command() -> bool {
     };
     let args = std::env::args().skip(2).collect::<Vec<_>>();
     let _ = match subcmd.as_str() {
-        "smali" => jar::run_jar(SMALI, &args),
-        "baksmali" => jar::run_jar(BAKSMALI, &args),
-        "apksigner" => jar::run_jar(APK_SIGNER, &args),
+        "smali" => crate::cmd::run_jar(SMALI, &args),
+        "baksmali" => crate::cmd::run_jar(BAKSMALI, &args),
+        "apksigner" => crate::cmd::run_jar(APK_SIGNER, &args),
         _ => return false,
     };
     true
@@ -103,12 +93,13 @@ pub(crate) fn run() -> Result<()> {
     if run_forward_command() {
         return Ok(());
     }
+
     let cli: Cli = argh::from_env();
     crate::log::init_logger(cli.verbose);
     match cli.nested {
-        SubCommands::Sign(Sign { file }) => ok!(jar::debugsign(&file)),
+        SubCommands::Sign(Sign { file }) => crate::cmd::debugsign(file.as_ref()),
         SubCommands::Unpack(Unpack { file }) => reverse::unpack_apk(&file),
-        SubCommands::Pack(_) => reverse::pack_apk(),
+        SubCommands::Pack(Pack { dir }) => reverse::pack_apk(dir),
         _ => {
             eprintln!("unhandled command, internal bug!");
             exit(-1);
