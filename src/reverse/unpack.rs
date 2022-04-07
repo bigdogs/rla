@@ -17,6 +17,13 @@ async fn task_prepare_files(outdir: PathBuf, apk: PathBuf) -> Result<()> {
         outdir.join(".gitignore"),
         r#"output
 **.DS_Store
+**.gradle/
+**.idea/
+**gradle/
+**gradlew
+**gradlew.bat
+**local.properties
+.vscode
 "#,
     )?;
     // currently , we don't have any config, just use a file to identifier the project root dir

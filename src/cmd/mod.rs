@@ -6,7 +6,7 @@ use anyhow::{format_err, Context, Result};
 use tracing::debug;
 
 pub(crate) use shell::{
-    baksmali, debugsign, git_add, git_commit, git_init, jadx_extract_src, run_jar, smali,
+    baksmali, debugsign, git_add, git_commit, git_init, jadx_extract_src, run_jar, smali, unzip,
 };
 
 fn cmd_to_string(cmd: &Command) -> String {

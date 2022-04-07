@@ -75,3 +75,9 @@ pub(crate) fn smali(smali_dir: &Path, dex: &Path, smali_jar: &Path) -> Result<St
         .arg(dex);
     super::run(c)
 }
+
+pub(crate) fn unzip(apk: &Path, dir: &Path) -> Result<String> {
+    let mut c = Command::new("unzip");
+    c.arg("-n").arg("-d").arg(dir).arg(apk);
+    super::run(c)
+}
