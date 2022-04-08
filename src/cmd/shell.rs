@@ -63,6 +63,12 @@ pub(crate) fn jadx_extract_src(apk: &Path, outdir: &Path) -> Result<String> {
     super::run(jadx)
 }
 
+pub(crate) fn jadx_compile_smali(smali: &Path, outdir: &Path) -> Result<String> {
+    let mut jadx = Command::new("jadx");
+    jadx.arg("-d").arg(outdir).arg(smali);
+    super::run(jadx)
+}
+
 pub(crate) fn baksmali(dex: &Path, outdir: &Path, baksmali_jar: &Path) -> Result<String> {
     let mut c = Command::new("java");
     c.arg("-jar")

@@ -28,6 +28,7 @@ enum SubCommands {
     Unpack(Unpack),
     Pack(Pack),
     JavaToSmali(JavaToSmali),
+    SmaliToJava(SmaliToJava),
 }
 
 #[derive(FromArgs)]
@@ -90,6 +91,15 @@ struct JavaToSmali {
     path: String,
 }
 
+#[derive(FromArgs)]
+/// compile smali (to java)
+#[argh(subcommand, name = "cs")]
+struct SmaliToJava {
+    /// a smali file to compile
+    #[argh(positional)]
+    path: String,
+}
+
 // `argh` doesn't support forward all arguments to another command,
 // so we handle it manually first.
 // Tracing will not enabled for these commands
@@ -125,6 +135,7 @@ pub(crate) fn run() -> Result<()> {
         }) => core::unpack_apk(&file, no_jadx, no_git, force),
         SubCommands::Pack(Pack { dir }) => core::pack_apk(dir),
         SubCommands::JavaToSmali(JavaToSmali { path }) => core::java_to_smali(&path),
+        SubCommands::SmaliToJava(SmaliToJava { path }) => core::smali_to_java(&path),
         _ => {
             eprintln!("unhandled command, internal bug!");
             exit(-1);

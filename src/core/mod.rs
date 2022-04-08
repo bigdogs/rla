@@ -16,6 +16,7 @@ use anyhow::{format_err, Context, Result};
 use tracing::debug;
 
 pub use java_to_smali::java_to_smali;
+pub use smali_to_java::smali_to_java;
 
 use crate::runtime::rt;
 

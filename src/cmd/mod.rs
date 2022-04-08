@@ -7,7 +7,7 @@ use tracing::debug;
 
 pub(crate) use shell::{
     baksmali, compile_java, debugsign, dx_class_to_dex, git_add, git_commit, git_init,
-    jadx_extract_src, run_jar, smali, unzip,
+    jadx_compile_smali, jadx_extract_src, run_jar, smali, unzip,
 };
 
 fn cmd_to_string(cmd: &Command) -> String {
