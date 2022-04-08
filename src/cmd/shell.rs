@@ -1,10 +1,10 @@
-use std::{ffi::OsStr, path::Path, process::Command};
+use std::{ffi::OsStr, fs, path::Path, process::Command};
 
 use crate::{
     deps::{Dep, APK_SIGNER, DEBUG_STORE},
     dir::binarydir,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 /// run a jar file without capture output
 pub(crate) fn run_jar<T: AsRef<OsStr>>(jar: &'static Dep, args: &[T]) -> Result<()> {
@@ -27,7 +27,16 @@ pub(crate) fn debugsign(file: &Path) -> Result<()> {
         .arg("--ks-pass")
         .arg("pass:android")
         .arg(file);
-    super::run(c).map(|_| ())
+    super::run(c).map(|_| {
+        // Latest apksigner use v4 algorithm, which will create a extra file(xxx.idsig),
+        // and I have no idea what is used for, just delete it :(
+        // https://source.android.com/security/apksigning/v4
+        let mut s = file.to_string_lossy().to_string();
+        s.push_str("idsig");
+        if Path::new(&s).exists() {
+            fs::remove_file(s).ok();
+        }
+    })
 }
 
 pub(crate) fn git_init(workdir: &Path) -> Result<String> {
@@ -79,5 +88,42 @@ pub(crate) fn smali(smali_dir: &Path, dex: &Path, smali_jar: &Path) -> Result<St
 pub(crate) fn unzip(apk: &Path, dir: &Path) -> Result<String> {
     let mut c = Command::new("unzip");
     c.arg("-n").arg("-d").arg(dir).arg(apk);
+    super::run(c)
+}
+
+/// compile java requires working dir to java root
+pub(crate) fn compile_java<P: AsRef<OsStr>>(java_files: &[P], work_dir: &Path) -> Result<String> {
+    let mut c = Command::new("javac");
+    c.current_dir(work_dir)
+        .arg("--release")
+        .arg("8")
+        .args(java_files);
+    super::run(c)
+}
+
+/// dx compile requires working to java root
+pub(crate) fn dx_class_to_dex<P: AsRef<OsStr>>(
+    class_files: &[P],
+    work_dir: &Path,
+    dx_jar: &Path,
+    out_dex: &Path,
+) -> Result<String> {
+    let class_files = class_files
+        .iter()
+        .map(|p| {
+            Path::new(p.as_ref())
+                .strip_prefix(work_dir)
+                .with_context(|| format!("{:?} not at dir {:?}", p.as_ref(), work_dir))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let mut c = Command::new("java");
+    c.current_dir(work_dir)
+        .arg("-jar")
+        .arg(dx_jar)
+        .arg("--dex")
+        .arg("--output")
+        .arg(out_dex)
+        .args(class_files);
     super::run(c)
 }

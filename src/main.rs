@@ -2,10 +2,10 @@
 
 mod cli;
 mod cmd;
+mod core;
 mod deps;
 mod dir;
 mod log;
-mod reverse;
 mod runtime;
 mod zip;
 
@@ -14,6 +14,6 @@ fn main() {
     if let Err(e) = cli::run() {
         tracing::error!("{e:?}");
     } else {
-        tracing::info!("DONE:  {:.2?}", start.elapsed());
+        tracing::debug!("task DONE:  {:.2?}", start.elapsed());
     }
 }

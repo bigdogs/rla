@@ -11,7 +11,7 @@ use crate::{
     dir::{binarydir, temppath},
 };
 
-#[instrument(skip_all, fields(dex=dex.file_name().unwrap().to_str().unwrap()))]
+#[instrument(skip_all, level = "debug", fields(dex=dex.file_name().unwrap().to_str().unwrap()))]
 async fn smali(smali_dir: PathBuf, dex: PathBuf, smali_jar: PathBuf) -> Result<()> {
     let tmp = temppath(dex.file_name().context("path invalid")?);
     crate::cmd::smali(&smali_dir, &tmp, &smali_jar)?;
@@ -38,7 +38,7 @@ fn smali_mapping_dex(smali_dir: PathBuf, apk_unpacked: &Path) -> Result<(PathBuf
     Ok((smali_dir, dex))
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_sync_smalis(root: PathBuf) -> Result<()> {
     let smalis_dir = root.join("smalis");
     let unpacked_dir = root.join("unpacked");
@@ -74,7 +74,7 @@ fn next_apk_name(dir: &Path) -> String {
     format!("{}.apk", idx + 1)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_zip(root: PathBuf) -> Result<PathBuf> {
     let unpacked_dir = root.join("unpacked");
     let out_dir = root.join("output");
@@ -86,7 +86,7 @@ async fn task_zip(root: PathBuf) -> Result<PathBuf> {
     Ok(apk)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_sign(apk: PathBuf) -> Result<()> {
     crate::cmd::debugsign(&apk)
 }

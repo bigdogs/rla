@@ -15,9 +15,13 @@ use std::{
 use anyhow::{format_err, Context, Result};
 use tracing::debug;
 
+pub use java_to_smali::java_to_smali;
+
 use crate::runtime::rt;
 
+mod java_to_smali;
 mod pack;
+mod smali_to_java;
 mod unpack;
 
 const RLA_CONFIG: &str = ".rla.config.json";
@@ -46,16 +50,28 @@ pub fn pack_apk(dir: Option<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn unpack_apk(apk: &str) -> Result<()> {
-    debug!("unpack apk: {apk}");
+pub fn unpack_apk(apk: &str, no_jadx: bool, no_git: bool, force: bool) -> Result<()> {
+    debug!("unpack apk: {apk}, no_jadx: {no_jadx}, no_git: {no_git}, force: {force}");
 
     let apk = Path::new(apk).to_path_buf();
     if !apk.extension().map(|e| e.eq("apk")).eq(&Some(true)) {
         return Err(format_err!("not .apk file"));
     };
 
+    // prepare write directory
     let outdir = apk.with_extension("");
-    fs::create_dir(&outdir)?;
-    rt().block_on(unpack::run(outdir, apk))?;
+    if outdir.exists() {
+        if force {
+            debug!("remove {outdir:?}");
+            fs::remove_dir_all(&outdir).with_context(|| format!("remove {outdir:?} error"))?
+        } else {
+            return Err(format_err!(
+                "{outdir:?} already exists, delete it before unpack"
+            ));
+        }
+    }
+    fs::create_dir(&outdir).with_context(|| format!("{outdir:?} create error"))?;
+
+    rt().block_on(unpack::run(outdir, apk, no_jadx, no_git))?;
     Ok(())
 }

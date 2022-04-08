@@ -19,13 +19,17 @@ pub(crate) fn init_logger(verbose: bool) {
             tracing::Level::INFO
         }
     };
-    tracing_subscriber::fmt()
+    let builder = tracing_subscriber::fmt()
         .with_file(verbose)
         .with_line_number(verbose)
-        .with_level(true)
+        .with_level(verbose)
         .with_target(false)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_max_level(level)
-        .with_timer(Timer)
-        .init();
+        .with_timer(Timer);
+    if verbose {
+        builder.init();
+    } else {
+        builder.without_time().init();
+    }
 }

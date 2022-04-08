@@ -11,6 +11,12 @@ pub const APK_SIGNER: &Dep = &Dep {
     bytes: include_bytes!("./apksigner.jar"),
 };
 
+/// copied from android sdk tools(30.0.3)
+pub const DX: &Dep = &Dep {
+    name: "dx.jar",
+    bytes: include_bytes!("./dx.jar"),
+};
+
 /// android studio debug sign,
 pub const DEBUG_STORE: &Dep = &Dep {
     name: "debug.keystore",

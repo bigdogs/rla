@@ -31,14 +31,14 @@ async fn task_prepare_files(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all, fields(dex=dex.file_name().unwrap().to_str().unwrap()))]
+#[instrument(skip_all, level = "debug", fields(dex=dex.file_name().unwrap().to_str().unwrap()))]
 async fn task_baksmali(dex: PathBuf, smalis_dir: PathBuf, baksmali_jar: PathBuf) -> Result<String> {
     let dexname = dex.file_name().context("dex file no name")?;
     let outdir = smalis_dir.join(dexname);
     crate::cmd::baksmali(&dex, &outdir, &baksmali_jar)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_unzip(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     let unpacked = outdir.join("unpacked");
     crate::zip::unzip(&apk, &unpacked)?;
@@ -61,7 +61,7 @@ async fn task_unzip(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_git_init(outdir: PathBuf) -> Result<()> {
     if let Err(e) = crate::cmd::git_init(&outdir) {
         // Notice user that git is not available, but not fail the procedure
@@ -70,7 +70,7 @@ async fn task_git_init(outdir: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_jadx_reverse(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     if let Err(e) = crate::cmd::jadx_extract_src(&apk, &outdir.join("jadx-src")) {
         error!("{e:?}");
@@ -78,7 +78,7 @@ async fn task_jadx_reverse(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_git_commit(outdir: PathBuf, msg: String) {
     if let Err(e) = crate::cmd::git_add(&outdir).and_then(|_| crate::cmd::git_commit(&outdir, &msg))
     {
@@ -86,7 +86,7 @@ async fn task_git_commit(outdir: PathBuf, msg: String) {
     }
 }
 
-pub(crate) async fn run(outdir: PathBuf, apk: PathBuf) -> Result<()> {
+pub(crate) async fn run(outdir: PathBuf, apk: PathBuf, no_jadx: bool, no_git: bool) -> Result<()> {
     // >> base.apk
     // >> unzip >> smali
     // >> git init
@@ -95,16 +95,24 @@ pub(crate) async fn run(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     // ====
     // >> git commit
 
-    // try_join will schedule our tasks in sequence, use spawn
-    let handles = vec![
+    // parallel tasks begin
+    let mut handles = vec![
         spawn(task_prepare_files(outdir.clone(), apk.clone())),
         spawn(task_unzip(outdir.clone(), apk.clone())),
-        spawn(task_git_init(outdir.clone())),
-        spawn(task_jadx_reverse(outdir.clone(), apk.clone())),
     ];
+
+    if !no_git {
+        handles.push(spawn(task_git_init(outdir.clone())));
+    }
+    if !no_jadx {
+        handles.push(spawn(task_jadx_reverse(outdir.clone(), apk.clone())));
+    }
     for h in handles {
         h.await??;
     }
-    task_git_commit(outdir, "Frist init project".to_string()).await;
+
+    if !no_git {
+        task_git_commit(outdir, "Frist init project".to_string()).await;
+    }
     Ok(())
 }

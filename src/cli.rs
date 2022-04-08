@@ -4,8 +4,8 @@ use anyhow::Result;
 use argh::FromArgs;
 
 use crate::{
+    core,
     deps::{APK_SIGNER, BAKSMALI, SMALI},
-    reverse,
 };
 
 #[derive(FromArgs)]
@@ -27,6 +27,7 @@ enum SubCommands {
     BakSmali(BakSmali),
     Unpack(Unpack),
     Pack(Pack),
+    JavaToSmali(JavaToSmali),
 }
 
 #[derive(FromArgs)]
@@ -57,9 +58,18 @@ struct Sign {
 /// init reverse project for the apk file
 #[argh(subcommand, name = "unpack")]
 struct Unpack {
-    /// apk file to sign
+    /// apk file to unpack
     #[argh(positional)]
     file: String,
+    /// disable jadx feature
+    #[argh(switch)]
+    no_jadx: bool,
+    /// disable git feature
+    #[argh(switch)]
+    no_git: bool,
+    /// force override exists directory
+    #[argh(switch)]
+    force: bool,
 }
 
 #[derive(FromArgs)]
@@ -69,6 +79,15 @@ struct Pack {
     /// directory of project
     #[argh(option, short = 'd')]
     dir: Option<String>,
+}
+
+#[derive(FromArgs)]
+/// compile java (to smali)
+#[argh(subcommand, name = "cj")]
+struct JavaToSmali {
+    /// either a java file or a root dir for java files
+    #[argh(positional)]
+    path: String,
 }
 
 // `argh` doesn't support forward all arguments to another command,
@@ -98,8 +117,14 @@ pub(crate) fn run() -> Result<()> {
     crate::log::init_logger(cli.verbose);
     match cli.nested {
         SubCommands::Sign(Sign { file }) => crate::cmd::debugsign(file.as_ref()),
-        SubCommands::Unpack(Unpack { file }) => reverse::unpack_apk(&file),
-        SubCommands::Pack(Pack { dir }) => reverse::pack_apk(dir),
+        SubCommands::Unpack(Unpack {
+            file,
+            no_jadx,
+            no_git,
+            force,
+        }) => core::unpack_apk(&file, no_jadx, no_git, force),
+        SubCommands::Pack(Pack { dir }) => core::pack_apk(dir),
+        SubCommands::JavaToSmali(JavaToSmali { path }) => core::java_to_smali(&path),
         _ => {
             eprintln!("unhandled command, internal bug!");
             exit(-1);
