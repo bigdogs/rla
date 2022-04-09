@@ -5,7 +5,7 @@ use tokio::spawn;
 use tracing::{error, instrument};
 
 use crate::{
-    deps::{BAKSMALI, FRIDA_INDEX_JS, FRIDA_PACKAGE, GIT_IGNORE},
+    deps::{BAKSMALI, FRIDA_INDEX_JS, FRIDA_PACKAGE, GIT_IGNORE, SMALI},
     dir::binarydir,
 };
 
@@ -13,14 +13,14 @@ use super::RLA_CONFIG;
 
 #[instrument(skip_all, level = "debug")]
 async fn task_prepare_files(outdir: PathBuf, apk: PathBuf) -> Result<()> {
-    let bak = outdir.join("bak.apk");
+    let bak = outdir.join(super::BAK_APK);
     fs::copy(&apk, &bak)?;
     GIT_IGNORE.release_binary(&outdir)?;
     // currently , we don't have any config, just use a file to identifier the project root dir
     fs::write(outdir.join(RLA_CONFIG), "{}")?;
 
     // prepare mini firda
-    let mini_frida = outdir.join("minifrida");
+    let mini_frida = outdir.join(super::MINI_FRIDA);
     fs::create_dir(&mini_frida).with_context(|| format!("{mini_frida:?} create failed"))?;
     FRIDA_INDEX_JS.release_binary(&mini_frida)?;
     FRIDA_PACKAGE.release_binary(&mini_frida)?;
@@ -36,10 +36,10 @@ async fn task_baksmali(dex: PathBuf, smalis_dir: PathBuf, baksmali_jar: PathBuf)
 
 #[instrument(skip_all, level = "debug")]
 async fn task_unzip(outdir: PathBuf, apk: PathBuf) -> Result<()> {
-    let unpacked = outdir.join("unpacked");
+    let unpacked = outdir.join(super::UNPACKED);
     crate::zip::unzip(&apk, &unpacked)?;
 
-    let smalis = outdir.join("smalis");
+    let smalis = outdir.join(super::SMALIS);
     fs::create_dir(&smalis)?;
 
     let baksmali_jar = BAKSMALI.release_binary(binarydir())?;
@@ -68,7 +68,7 @@ async fn task_git_init(outdir: PathBuf) -> Result<()> {
 
 #[instrument(skip_all, level = "debug")]
 async fn task_jadx_reverse(outdir: PathBuf, apk: PathBuf) -> Result<()> {
-    if let Err(e) = crate::cmd::jadx_extract_src(&apk, &outdir.join("jadx-src")) {
+    if let Err(e) = crate::cmd::jadx_extract_src(&apk, &outdir.join(super::JADX_SRC)) {
         error!("{e:?}");
     }
     Ok(())

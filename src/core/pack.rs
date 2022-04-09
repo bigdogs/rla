@@ -40,8 +40,8 @@ fn smali_mapping_dex(smali_dir: PathBuf, apk_unpacked: &Path) -> Result<(PathBuf
 
 #[instrument(skip_all, level = "debug")]
 async fn task_sync_smalis(root: PathBuf) -> Result<()> {
-    let smalis_dir = root.join("smalis");
-    let unpacked_dir = root.join("unpacked");
+    let smalis_dir = root.join(super::SMALIS);
+    let unpacked_dir = root.join(super::UNPACKED);
     let smali_jar = SMALI.release_binary(binarydir())?;
 
     let handles = entries(&smalis_dir)
@@ -76,7 +76,7 @@ fn next_apk_name(dir: &Path) -> String {
 
 #[instrument(skip_all, level = "debug")]
 async fn task_zip(root: PathBuf) -> Result<PathBuf> {
-    let unpacked_dir = root.join("unpacked");
+    let unpacked_dir = root.join(super::UNPACKED);
     let out_dir = root.join("output");
     if !out_dir.exists() {
         fs::create_dir(&out_dir).with_context(|| format!("{out_dir:?} create error"))?;

@@ -26,6 +26,11 @@ mod smali_to_java;
 mod unpack;
 
 const RLA_CONFIG: &str = ".rla.config.json";
+const BAK_APK: &str = "bak.apk";
+const MINI_FRIDA: &str = "minifrida";
+const UNPACKED: &str = ".unpacked";
+const SMALIS: &str = "smalis";
+const JADX_SRC: &str = "jadx-src";
 
 fn find_rla_root() -> Option<PathBuf> {
     let cur = std::env::current_dir().ok()?;
