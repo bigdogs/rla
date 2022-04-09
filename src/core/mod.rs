@@ -67,7 +67,7 @@ pub fn unpack_apk(apk: &str, no_jadx: bool, no_git: bool, force: bool) -> Result
             fs::remove_dir_all(&outdir).with_context(|| format!("remove {outdir:?} error"))?
         } else {
             return Err(format_err!(
-                "{outdir:?} already exists, delete it before unpack"
+                "{outdir:?} already exists, delete it or use --force"
             ));
         }
     }

@@ -1,0 +1,17 @@
+{
+  "name": "frida-hook",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "r": "frida -U ee -l index.js"
+  },
+  "devDependencies": {
+    "@types/frida-gum": "^18.0.0",
+    "@types/node": "^16.4.8",
+    "frida-compile": "^10.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

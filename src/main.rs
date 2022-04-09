@@ -13,6 +13,7 @@ fn main() {
     let start = std::time::Instant::now();
     if let Err(e) = cli::run() {
         tracing::error!("{e:?}");
+        std::process::exit(1);
     } else {
         tracing::debug!("task DONE:  {:.2?}", start.elapsed());
     }

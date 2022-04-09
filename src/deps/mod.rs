@@ -37,6 +37,21 @@ pub const BAKSMALI: &Dep = &Dep {
     bytes: include_bytes!("./baksmali-2.5.2.jar"),
 };
 
+pub const GIT_IGNORE: &Dep = &Dep {
+    name: ".gitignore",
+    bytes: include_bytes!("./gitignore"),
+};
+
+pub const FRIDA_INDEX_JS: &Dep = &Dep {
+    name: "index.js",
+    bytes: include_bytes!("./index.js"),
+};
+
+pub const FRIDA_PACKAGE: &Dep = &Dep {
+    name: "package.json",
+    bytes: include_bytes!("./package.json"),
+};
+
 pub struct Dep {
     pub name: &'static str,
     pub bytes: &'static [u8],

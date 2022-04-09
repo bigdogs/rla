@@ -1,0 +1,15 @@
+**.DS_Store
+**.gradle/
+**.idea/
+**gradle/
+**gradlew
+**gradlew.bat
+**local.properties
+.vscode
+
+output
+
+**yarn.lock
+**node_modules
+
+**.DS_Store

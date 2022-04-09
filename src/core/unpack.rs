@@ -4,30 +4,26 @@ use anyhow::{Context, Result};
 use tokio::spawn;
 use tracing::{error, instrument};
 
-use crate::{deps::BAKSMALI, dir::binarydir};
+use crate::{
+    deps::{BAKSMALI, FRIDA_INDEX_JS, FRIDA_PACKAGE, GIT_IGNORE},
+    dir::binarydir,
+};
 
 use super::RLA_CONFIG;
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 async fn task_prepare_files(outdir: PathBuf, apk: PathBuf) -> Result<()> {
     let bak = outdir.join("bak.apk");
     fs::copy(&apk, &bak)?;
-
-    fs::write(
-        outdir.join(".gitignore"),
-        r#"output
-**.DS_Store
-**.gradle/
-**.idea/
-**gradle/
-**gradlew
-**gradlew.bat
-**local.properties
-.vscode
-"#,
-    )?;
+    GIT_IGNORE.release_binary(&outdir)?;
     // currently , we don't have any config, just use a file to identifier the project root dir
     fs::write(outdir.join(RLA_CONFIG), "{}")?;
+
+    // prepare mini firda
+    let mini_frida = outdir.join("minifrida");
+    fs::create_dir(&mini_frida).with_context(|| format!("{mini_frida:?} create failed"))?;
+    FRIDA_INDEX_JS.release_binary(&mini_frida)?;
+    FRIDA_PACKAGE.release_binary(&mini_frida)?;
     Ok(())
 }
 
