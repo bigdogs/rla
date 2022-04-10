@@ -13,6 +13,7 @@ use std::{
 };
 
 use anyhow::{format_err, Context, Result};
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 pub use java_to_smali::java_to_smali;
@@ -31,6 +32,14 @@ const MINI_FRIDA: &str = "minifrida";
 const UNPACKED: &str = ".unpacked";
 const SMALIS: &str = "smalis";
 const JADX_SRC: &str = "jadx-src";
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RlaConfig {
+    pub smali_only: bool,
+    pub git_enable: bool,
+    pub jadx_enable: bool,
+    pub force_override: bool,
+}
 
 fn find_rla_root() -> Option<PathBuf> {
     let cur = std::env::current_dir().ok()?;
@@ -56,8 +65,8 @@ pub fn pack_apk(dir: Option<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn unpack_apk(apk: &str, no_jadx: bool, no_git: bool, force: bool) -> Result<()> {
-    debug!("unpack apk: {apk}, no_jadx: {no_jadx}, no_git: {no_git}, force: {force}");
+pub fn unpack_apk(apk: &str, config: RlaConfig) -> Result<()> {
+    debug!("unpack apk: {apk}, {config:?}");
 
     let apk = Path::new(apk).to_path_buf();
     if !apk.extension().map(|e| e.eq("apk")).eq(&Some(true)) {
@@ -67,7 +76,7 @@ pub fn unpack_apk(apk: &str, no_jadx: bool, no_git: bool, force: bool) -> Result
     // prepare write directory
     let outdir = apk.with_extension("");
     if outdir.exists() {
-        if force {
+        if config.force_override {
             debug!("remove {outdir:?}");
             fs::remove_dir_all(&outdir).with_context(|| format!("remove {outdir:?} error"))?
         } else {
@@ -78,6 +87,6 @@ pub fn unpack_apk(apk: &str, no_jadx: bool, no_git: bool, force: bool) -> Result
     }
     fs::create_dir(&outdir).with_context(|| format!("{outdir:?} create error"))?;
 
-    rt().block_on(unpack::run(outdir, apk, no_jadx, no_git))?;
+    rt().block_on(unpack::run(outdir, apk, config))?;
     Ok(())
 }

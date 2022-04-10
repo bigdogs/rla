@@ -4,78 +4,93 @@ function safeUseClass(clazz) {
   try {
     return Java.use(clazz);
   } catch (_e) {
-    console.log(`error: "${clazz}" not found`);
+    console.error(`error: "${clazz}" not found`);
     return null;
   }
 }
 
-function monitorLibcOpen() {
-  // https://github.com/iddoeldor/frida-snippets#intercept-open
-  const f = Module.findExportByName(
-    "/apex/com.android.runtime/lib64/bionic/libc.so",
-    "open"
+function printBacktrace() {
+  console.log(
+    Java.use("android.util.Log").getStackTraceString(
+      Java.use("java.lang.Exception").$new()
+    )
   );
-  if (!f) {
-    console.log("libc::open not found");
-    return;
-  }
-
-  console.log("[C] libc::open @", f);
-  Interceptor.attach(f, {
-    onEnter: function (args) {
-      this.flag = false;
-      const filename = Memory.readCString(ptr(args[0]));
-      console.log("libc@open: ", filename);
-    },
-    onLeave: function (retval) {
-      if (this.flag)
-        // passed from onEnter
-        console.warn("\nretval: " + retval);
-    },
-  });
 }
 
-function monitorJavaMethod(method) {
-  console.log("[J] " + method);
-  const pos = method.lastIndexOf(".");
-  const clazz = method.slice(0, pos);
-  const methodName = method.slice(pos + 1);
-
-  const vm = safeUseClass(clazz);
-  if (!vm) {
-    return;
-  }
-  vm[methodName].overloads.forEach((m) => {
+function monitorEntry(obj) {
+  const { clazzVm, methodName, backtrace, path, injectArgs, injectRet } = obj;
+  clazzVm[methodName].overloads.forEach((m) => {
     m.implementation = function () {
-      let args = [];
-      for (let i = 0; i < arguments.length; ++i) {
-        args.push(`(${i})` + arguments[i]);
+      let args = arguments;
+      let msg = Array.from(args).join(", ");
+      if (injectArgs) {
+        args = injectArgs(args);
+        msg += " #=># " + args.join(",");
       }
 
-      console.log(`enter [${method}]: ` + args.join(", "));
-      let ret = this[methodName].apply(this, arguments);
-      console.log(`return [${method}]: ` + ret);
+      console.log(`enter [${path}]: ${msg}`);
+      if (backtrace) {
+        printBacktrace();
+      }
+
+      let ret = this[methodName].apply(this, args);
+
+      let msg2 = `${ret}`;
+      if (injectRet) {
+        ret = injectRet(ret);
+        msg2 += " #=># " + ret;
+      }
+
+      console.log(`exit [${path}]: ${msg2}`);
       return ret;
     };
   });
 }
 
-function monitorJavaClass(clazz) {
-  let vm = safeUseClass(clazz);
-  if (!vm) {
+/// monitor a single method
+function method(m, obj = {}) {
+  const pos = m.lastIndexOf(".");
+  const clazz = m.slice(0, pos);
+  const methodName = m.slice(pos + 1);
+  let clazzVm = safeUseClass(clazz);
+  if (!clazzVm) {
     return;
   }
-  vm.class.getDeclaredMethods().forEach((m) => {
-    monitorJavaMethod(clazz + "." + m.getName());
+  const { backtrace, injectArgs, injectRet } = obj;
+  monitorEntry({
+    clazzVm,
+    methodName,
+    backtrace,
+    path: m,
+    injectArgs,
+    injectRet,
+  });
+}
+
+/// monitor all methods in class c
+function clazz(c, obj = {}) {
+  let clazzVm = safeUseClass(c);
+  if (!clazzVm) {
+    return;
+  }
+
+  const { backtrace, injectArgs, injectRet } = obj;
+  clazzVm.class.getDeclaredMethods().forEach((m) => {
+    monitorEntry({
+      clazzVm,
+      methodName: m.getName(),
+      backtrace,
+      path: `${clazzVm}.${m.getName()}`,
+      injectArgs: null,
+      injectRet: null,
+    });
   });
 }
 
 function main() {
-  console.log("!! frida script is loaded.");
+  console.log("++ frida script is loaded ++");
   Java.perform(() => {
     console.log("vm is attached");
-    monitorJavaClass("com.a.b");
-    monitorLibcOpen();
   });
 }
 

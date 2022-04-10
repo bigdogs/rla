@@ -32,7 +32,7 @@ pub(crate) fn debugsign(file: &Path) -> Result<()> {
         // and I have no idea what is used for, just delete it :(
         // https://source.android.com/security/apksigning/v4
         let mut s = file.to_string_lossy().to_string();
-        s.push_str("idsig");
+        s.push_str(".idsig");
         if Path::new(&s).exists() {
             fs::remove_file(s).ok();
         }
@@ -131,5 +131,15 @@ pub(crate) fn dx_class_to_dex<P: AsRef<OsStr>>(
         .arg("--output")
         .arg(out_dex)
         .args(class_files);
+    super::run(c)
+}
+
+pub(crate) fn zip_update_files<P: AsRef<OsStr>>(
+    apk: &Path,
+    workdir: &Path,
+    files: &[P],
+) -> Result<String> {
+    let mut c = Command::new("zip");
+    c.current_dir(workdir).arg(apk).args(files);
     super::run(c)
 }

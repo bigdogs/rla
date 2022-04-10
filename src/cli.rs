@@ -4,7 +4,7 @@ use anyhow::Result;
 use argh::FromArgs;
 
 use crate::{
-    core,
+    core::{self, RlaConfig},
     deps::{APK_SIGNER, BAKSMALI, SMALI},
 };
 
@@ -68,9 +68,23 @@ struct Unpack {
     /// disable git feature
     #[argh(switch)]
     no_git: bool,
+    /// unpack smali only
+    #[argh(switch, long = "smali")]
+    smali_only: bool,
     /// force override exists directory
     #[argh(switch)]
     force: bool,
+}
+
+impl Unpack {
+    fn config(&self) -> RlaConfig {
+        RlaConfig {
+            smali_only: self.smali_only,
+            git_enable: !self.no_git,
+            jadx_enable: !self.no_jadx,
+            force_override: self.force,
+        }
+    }
 }
 
 #[derive(FromArgs)]
@@ -127,12 +141,7 @@ pub(crate) fn run() -> Result<()> {
     crate::log::init_logger(cli.verbose);
     match cli.nested {
         SubCommands::Sign(Sign { file }) => crate::cmd::debugsign(file.as_ref()),
-        SubCommands::Unpack(Unpack {
-            file,
-            no_jadx,
-            no_git,
-            force,
-        }) => core::unpack_apk(&file, no_jadx, no_git, force),
+        SubCommands::Unpack(c) => core::unpack_apk(&c.file, c.config()),
         SubCommands::Pack(Pack { dir }) => core::pack_apk(dir),
         SubCommands::JavaToSmali(JavaToSmali { path }) => core::java_to_smali(&path),
         SubCommands::SmaliToJava(SmaliToJava { path }) => core::smali_to_java(&path),
